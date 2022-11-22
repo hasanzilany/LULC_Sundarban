@@ -1,0 +1,466 @@
+//Merge sample points together into one FeatureCollection
+var urbanization_2020 = nonurban.merge(urban);
+
+//Select Bands from mosaic Image for training
+var bandsL7 = ['B1', 'B2', 'B3', "B4", 'B5', 'B7'];
+var bandsL8 = ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B10', 'B11'];
+//The name of the property on the points storing the class lebel
+var classProperty = 'urbanization';
+
+//Sample the input imagery to get a FeatureCollection of training data
+var l8 = ee.ImageCollection('LANDSAT/LC08/C01/T1');
+
+var image120 = ee.Algorithms.Landsat.simpleComposite({
+  collection: l8.filterDate('2020-01-01', '2020-03-31'),
+  asFloat: true
+});
+var image220 = ee.Algorithms.Landsat.simpleComposite({
+  collection: l8.filterDate('2020-11-01', '2020-12-31'),
+  asFloat: true
+});
+var image2020 = ee.ImageCollection.fromImages([image120, image220]).mosaic();
+var training = image2020.select(bandsL8).sampleRegions({
+  collection: urbanization_2020,
+  properties: [classProperty],
+  scale: 30
+});
+
+//Train the classifier
+var classifier = ee.Classifier.smileRandomForest(100).train({
+  features: training,
+  classProperty: classProperty,
+});
+
+//Classify the input imagery
+var classified_2020 = image2020.classify(classifier);
+
+
+//Define color palette
+var palette = [
+  '2d8018', 
+  'ff6218'  
+];
+
+//Display the classified result 
+Map.addLayer(classified_2020.clip(bandarban_boundary), {
+  min:0, max: 2, palette: palette}, 'LULC_2020', true);
+ 
+//-----------------------------------------
+
+// Load Landsat 5 input imagery.
+var landsat = ee.Image(ee.ImageCollection('LANDSAT/LC08/C01/T1_TOA')
+  // Filter to get only one year of images.
+  .filterDate('2020-01-01', '2020-12-31')
+  // Filter to get only images under the region of interest.
+  .filterBounds(bandarban_boundary)
+  // Sort by scene cloudiness, ascending.
+  .sort('CLOUD_COVER')
+  // Get the first (least cloudy) scene.
+  .first());
+
+// Compute cloud score.
+var cloudScore = ee.Algorithms.Landsat.simpleCloudScore(landsat).select('cloud');
+
+// Mask the input for clouds.  Compute the min of the input mask to mask
+// pixels where any band is masked.  Combine that with the cloud mask.
+var input = landsat.updateMask(landsat.mask().reduce('min').and(cloudScore.lte(50)));
+
+// Use MODIS land cover, IGBP classification, for training.
+var modis = ee.Image('MODIS/006/MCD12Q1/2019_01_01')
+    .select('LC_Type1');
+ 
+// Sample the input imagery to get a FeatureCollection of training data.
+var training = input.addBands(modis).sample({
+  numPixels: 5000,
+  seed: 0
+});
+
+// Make a Random Forest classifier and train it.
+var classifier = ee.Classifier.smileRandomForest(100)
+    .train({
+      features: training,
+      classProperty: 'LC_Type1',
+      inputProperties: ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7']
+    });
+
+// Classify the input imagery.
+var classified = input.classify(classifier);
+
+// Get a confusion matrix representing resubstitution accuracy.
+var trainAccuracy = classifier.confusionMatrix();
+print('Resubstitution error matrix 2020: ', trainAccuracy);
+print('Training overall accuracy 2020: ', trainAccuracy.accuracy());
+
+// Sample the input with a different random seed to get validation data.
+var validation = input.addBands(modis).sample({
+  numPixels: 5000,
+  seed: 1
+  // Filter the result to get rid of any null pixels.
+}).filter(ee.Filter.neq('B1', null));
+
+// Classify the validation data.
+var validated = validation.classify(classifier);
+
+// Get a confusion matrix representing expected accuracy.
+var testAccuracy = validated.errorMatrix('LC_Type1', 'classification');
+print('Validation error matrix 2020: ', testAccuracy);
+print('Validation overall accuracy 2020: ', testAccuracy.accuracy());
+print('Kappa 2020: ', testAccuracy.kappa());
+
+//Training Data-------------------------------------------------------
+
+//Sample the input imagery to get a FeatureCollection of training data
+var urbanization_2015 = nonurban.merge(urban);
+
+
+var image115 = ee.Algorithms.Landsat.simpleComposite({
+  collection: l8.filterDate('2015-01-01', '2015-03-31'),
+  asFloat: true
+});
+var image215 = ee.Algorithms.Landsat.simpleComposite({
+  collection: l8.filterDate('2016-11-01', '2016-12-31'),
+  asFloat: true
+});
+var image2015 = ee.ImageCollection.fromImages([image115, image215]).mosaic();
+
+
+ 
+var training = image2015.select(bandsL8).sampleRegions({
+  collection: urbanization_2015,
+  properties: [classProperty],
+  scale: 30
+});
+
+//Train the classifier
+var classifier15 = ee.Classifier.smileRandomForest(100).train({
+  features: training,
+  classProperty: classProperty,
+});
+
+//Classify the input imagery
+var classified_2015 = image2015.classify(classifier15);
+
+
+//Display the classified result 
+Map.addLayer(classified_2015.clip(bandarban_boundary), {
+  min:0, max: 2, palette: palette}, 'LULC_2015', true);
+
+var landsat = ee.Image(ee.ImageCollection('LANDSAT/LC08/C01/T1_TOA')
+  // Filter to get only one year of images.
+  .filterDate('2015-01-01', '2015-12-31')
+  // Filter to get only images under the region of interest.
+  .filterBounds(bandarban_boundary)
+  // Sort by scene cloudiness, ascending.
+  .sort('CLOUD_COVER')
+  // Get the first (least cloudy) scene.
+  .first());
+
+// Compute cloud score.
+var cloudScore = ee.Algorithms.Landsat.simpleCloudScore(landsat).select('cloud');
+
+// Mask the input for clouds.  Compute the min of the input mask to mask
+// pixels where any band is masked.  Combine that with the cloud mask.
+var input = landsat.updateMask(landsat.mask().reduce('min').and(cloudScore.lte(50)));
+
+// Use MODIS land cover, IGBP classification, for training.
+var modis = ee.Image('MODIS/006/MCD12Q1/2015_01_01')
+    .select('LC_Type1');
+
+// Sample the input imagery to get a FeatureCollection of training data.
+var training = input.addBands(modis).sample({
+  numPixels: 5000,
+  seed: 0
+});
+
+// Make a Random Forest classifier and train it.
+var classifier = ee.Classifier.smileRandomForest(100)
+    .train({
+      features: training,
+      classProperty: 'LC_Type1',
+      inputProperties: ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7']
+    });
+
+// Classify the input imagery.
+var classified = input.classify(classifier);
+
+// Get a confusion matrix representing resubstitution accuracy.
+var trainAccuracy = classifier.confusionMatrix();
+print('Resubstitution error matrix 2015: ', trainAccuracy);
+print('Training overall accuracy 2015: ', trainAccuracy.accuracy());
+
+// Sample the input with a different random seed to get validation data.
+var validation = input.addBands(modis).sample({
+  numPixels: 5000,
+  seed: 1
+  // Filter the result to get rid of any null pixels.
+}).filter(ee.Filter.neq('B1', null));
+
+// Classify the validation data.
+var validated = validation.classify(classifier);
+
+// Get a confusion matrix representing expected accuracy.
+var testAccuracy = validated.errorMatrix('LC_Type1', 'classification');
+print('Validation error matrix 2015: ', testAccuracy);
+print('Validation overall accuracy 2015: ', testAccuracy.accuracy());
+print('Kappa 2015: ', testAccuracy.kappa());
+ 
+ 
+//2010 training--------------------------------------------
+//LANDSAT/LE07/C01/T1_RT      LANDSAT/LE07/C01/T1_SR   LANDSAT/LE07/C01/T1   LANDSAT/LE07/C01/T2_TOA
+var urbanization_2010 = nonurban.merge(urban);
+var l7 = ee.ImageCollection('LANDSAT/LE07/C01/T1_RT');
+
+var image1 = ee.Algorithms.Landsat.simpleComposite({
+  collection: l7.filterDate('2010-01-01', '2010-03-30'),
+  asFloat: true
+});
+var image2 = ee.Algorithms.Landsat.simpleComposite({
+  collection: l7.filterDate('2010-10-01', '2010-12-31'),
+  asFloat: true
+});
+var image10 = ee.ImageCollection.fromImages([image1, image2]).mosaic();
+
+ 
+var training = image10.select(bandsL7).sampleRegions({
+  collection: urbanization_2010,
+  properties: [classProperty],
+  scale: 30
+});
+
+//Train the classifier
+var classifier = ee.Classifier.smileRandomForest(100).train({
+  features: training,
+  classProperty: classProperty,
+});
+
+//Classify the input imagery
+var classified_2010 = image10.classify(classifier);
+
+
+//Display the classified result 
+Map.addLayer(classified_2010.clip(bandarban_boundary), {
+  min:0, max: 2, palette: palette}, 'LULC_2010', true);
+
+var landsat = ee.Image(ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
+  // Filter to get only one year of images.
+  .filterDate('2010-01-01', '2010-12-31')
+  // Filter to get only images under the region of interest.
+  .filterBounds(bandarban_boundary)
+  // Sort by scene cloudiness, ascending.
+  .sort('CLOUD_COVER')
+  // Get the first (least cloudy) scene.
+  .first());
+
+// Compute cloud score.
+var cloudScore = ee.Algorithms.Landsat.simpleCloudScore(landsat).select('cloud');
+
+// Mask the input for clouds.  Compute the min of the input mask to mask
+// pixels where any band is masked.  Combine that with the cloud mask.
+var input = landsat.updateMask(landsat.mask().reduce('min').and(cloudScore.lte(50)));
+
+// Use MODIS land cover, IGBP classification, for training.
+var modis = ee.Image('MODIS/051/MCD12Q1/2010_01_01')
+    .select('Land_Cover_Type_1');
+
+// Sample the input imagery to get a FeatureCollection of training data.
+var training = input.addBands(modis).sample({
+  numPixels: 5000,
+  seed: 0
+});
+
+// Make a Random Forest classifier and train it.
+var classifier = ee.Classifier.smileRandomForest(100)
+    .train({
+      features: training,
+      classProperty: 'Land_Cover_Type_1',
+      inputProperties: ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7']
+    });
+
+// Classify the input imagery.
+var classified = input.classify(classifier);
+
+// Get a confusion matrix representing resubstitution accuracy.
+var trainAccuracy = classifier.confusionMatrix();
+print('Resubstitution error matrix 2010: ', trainAccuracy);
+print('Training overall accuracy 2010: ', trainAccuracy.accuracy());
+
+// Sample the input with a different random seed to get validation data.
+var validation = input.addBands(modis).sample({
+  numPixels: 5000,
+  seed: 1
+  // Filter the result to get rid of any null pixels.
+}).filter(ee.Filter.neq('B1', null));
+
+// Classify the validation data.
+var validated = validation.classify(classifier);
+
+// Get a confusion matrix representing expected accuracy.
+var testAccuracy = validated.errorMatrix('Land_Cover_Type_1', 'classification');
+print('Validation error matrix 2010: ', testAccuracy);
+print('Validation overall accuracy 2010: ', testAccuracy.accuracy());
+print('Kappa 2010: ', testAccuracy.kappa());
+
+
+
+ 
+//------------------------------------------------------------------------------------------------
+
+
+
+//district boundaries
+var districts = ee.FeatureCollection("FAO/GAUL/2015/level2");
+Map.addLayer(districts, {},"District boundaries", false);
+
+//Change detection------------------------------------------------------------------------------
+//Determine the Land Cover Change between 2015 and 2020
+var LULC_Change1 = classified_2020.subtract(classified_2015);
+Map.addLayer(LULC_Change1.clip(bandarban_boundary), {
+  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2015 and 2020_Bandarban', 0);
+
+//Determine the Land Cover Change between 2010 and 2015
+var LULC_Change2 = classified_2015.subtract(classified_2010);
+Map.addLayer(LULC_Change2.clip(bandarban_boundary), {
+  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2010 and 2015_Bandarban', 0);
+
+//Determine the Land Cover Change between 2010 and 2020
+var LULC_Change3 = classified_2020.subtract(classified_2010);
+Map.addLayer(LULC_Change3.clip(bandarban_boundary), {
+  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2010 and 2020_Bandarban', 0);
+
+//------------------------------------------------------------------------------
+ 
+
+
+Export.image.toDrive({
+  image: LULC_Change1.clip(bandarban_boundary).toDouble(),
+  description: 'LULC_Change_Between_2015_and_2020_Bandarban',
+  scale: 30,
+  region: bandarban_boundary,
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e9
+});
+
+
+//thumbnails--------------------------------------------------------------
+
+//LULC Change Between 2020 and 2015_Bandarban
+var thumbnail1 = LULC_Change1.clip(bandarban_boundary).getThumbURL({
+  'min': 0,
+  'max': 2,
+  'palette':  ['green', 'red', 'yellow'],
+  'dimensions': 500,
+  'region': bandarban_boundary,
+});
+print('LULC Change Between 2020 and 2015_Bandarban:', thumbnail1);
+
+//LULC Change Between 2010 and 2015_Bandarban
+var thumbnail2 = LULC_Change2.clip(bandarban_boundary).getThumbURL({
+  'min': 0,
+  'max': 2,
+  'palette':  ['green', 'red', 'yellow'],
+  'dimensions': 500,
+  'region': bandarban_boundary,
+});
+print('LULC Change Between 2010 and 2015_Bandarban:', thumbnail2);
+
+//LULC Change Between 2010 and 2020_Bandarban
+var thumbnail3 = LULC_Change3.clip(bandarban_boundary).getThumbURL({
+  'min': 0,
+  'max': 2,
+  'palette':  ['green', 'red', 'yellow'],
+  'dimensions': 500,
+  'region': bandarban_boundary,
+});
+print('LULC Change Between 2010 and 2020_Bandarban:', thumbnail3);
+
+
+var thumbnail4 = classified_2020.clip(bandarban_boundary).getThumbURL({
+  'min': 0,
+  'max': 2,
+  'palette':  palette,
+  'dimensions': 500,
+  'region': bandarban_boundary,
+});
+print('classified_2020', thumbnail4);
+
+var thumbnail4 = classified_2015.clip(bandarban_boundary).getThumbURL({
+  'min': 0,
+  'max': 2,
+  'palette':  palette,
+  'dimensions': 500,
+  'region': bandarban_boundary,
+});
+print('classified_2015', thumbnail4);
+
+var thumbnail4 = classified_2010.clip(bandarban_boundary).getThumbURL({
+  'min': 0,
+  'max': 2,
+  'palette': palette,
+  'dimensions': 500,
+  'region': bandarban_boundary,
+});
+print('classified_2010', thumbnail4);
+
+
+
+var bui = classified_2020.select('classification').eq(1);
+var bu_area = bui.multiply(ee.Image.pixelArea()).divide(1000*1000);
+
+var stat = bu_area.reduceRegion({
+  reducer: ee.Reducer.sum(),
+  geometry: bandarban_boundary,
+  scale: 30,
+  maxPixels: 1e9
+});
+
+print('Built-up area 2020 (in sq.km)', stat);
+
+ 
+
+var bui1 = classified_2010.select('classification').eq(1);
+var bu_area1 = bui1.multiply(ee.Image.pixelArea()).divide(1000*1000);
+
+var stat1 = bu_area1.reduceRegion({
+  reducer: ee.Reducer.sum(),
+  geometry: bandarban_boundary,
+  scale: 30,
+  maxPixels: 1e9
+});
+
+print('Built-up area 2010 (in sq.km)', stat1);
+Export.table.toDrive({
+  collection: nonurban,
+  description:'vectorsToDriveExample',
+  fileFormat: 'SHP'
+});
+
+Export.table.toDrive({
+  collection: urban,
+  description:'vectorsToDriveExample',
+  fileFormat: 'SHP'
+});
+
+
+
+var wat15 = classified_2015.select('classification').eq(0);
+var wat_area15 = wat15.multiply(ee.Image.pixelArea()).divide(1000*1000);
+var wat20 = classified_2020.select('classification').eq(0);
+var wat_area20 = wat20.multiply(ee.Image.pixelArea()).divide(1000*1000);
+var stat15 = wat_area15.reduceRegion({
+  reducer: ee.Reducer.sum(),
+  geometry: Sundarban_Border,
+  scale: 30,
+  maxPixels: 1e9
+});
+
+print('Water area 2015 (in sq.km)', stat15);
+
+
+var stat20 = wat_area20.reduceRegion({
+  reducer: ee.Reducer.sum(),
+  geometry: Sundarban_Border,
+  scale: 30,
+  maxPixels: 1e9
+});
+
+print('Water area 2020 (in sq.km)', stat20);
