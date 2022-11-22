@@ -42,7 +42,7 @@ var palette = [
 ];
 
 //Display the classified result 
-Map.addLayer(classified_2020.clip(bandarban_boundary), {
+Map.addLayer(classified_2020.clip(sundarban_boundary), {
   min:0, max: 2, palette: palette}, 'LULC_2020', true);
  
 //-----------------------------------------
@@ -52,7 +52,7 @@ var landsat = ee.Image(ee.ImageCollection('LANDSAT/LC08/C01/T1_TOA')
   // Filter to get only one year of images.
   .filterDate('2020-01-01', '2020-12-31')
   // Filter to get only images under the region of interest.
-  .filterBounds(bandarban_boundary)
+  .filterBounds(sundarban_boundary)
   // Sort by scene cloudiness, ascending.
   .sort('CLOUD_COVER')
   // Get the first (least cloudy) scene.
@@ -142,14 +142,14 @@ var classified_2015 = image2015.classify(classifier15);
 
 
 //Display the classified result 
-Map.addLayer(classified_2015.clip(bandarban_boundary), {
+Map.addLayer(classified_2015.clip(sundarban_boundary), {
   min:0, max: 2, palette: palette}, 'LULC_2015', true);
 
 var landsat = ee.Image(ee.ImageCollection('LANDSAT/LC08/C01/T1_TOA')
   // Filter to get only one year of images.
   .filterDate('2015-01-01', '2015-12-31')
   // Filter to get only images under the region of interest.
-  .filterBounds(bandarban_boundary)
+  .filterBounds(sundarban_boundary)
   // Sort by scene cloudiness, ascending.
   .sort('CLOUD_COVER')
   // Get the first (least cloudy) scene.
@@ -238,14 +238,14 @@ var classified_2010 = image10.classify(classifier);
 
 
 //Display the classified result 
-Map.addLayer(classified_2010.clip(bandarban_boundary), {
+Map.addLayer(classified_2010.clip(sundarban_boundary), {
   min:0, max: 2, palette: palette}, 'LULC_2010', true);
 
 var landsat = ee.Image(ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
   // Filter to get only one year of images.
   .filterDate('2010-01-01', '2010-12-31')
   // Filter to get only images under the region of interest.
-  .filterBounds(bandarban_boundary)
+  .filterBounds(sundarban_boundary)
   // Sort by scene cloudiness, ascending.
   .sort('CLOUD_COVER')
   // Get the first (least cloudy) scene.
@@ -314,28 +314,28 @@ Map.addLayer(districts, {},"District boundaries", false);
 //Change detection------------------------------------------------------------------------------
 //Determine the Land Cover Change between 2015 and 2020
 var LULC_Change1 = classified_2020.subtract(classified_2015);
-Map.addLayer(LULC_Change1.clip(bandarban_boundary), {
-  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2015 and 2020_Bandarban', 0);
+Map.addLayer(LULC_Change1.clip(sundarban_boundary), {
+  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2015 and 2020_Sundarban', 0);
 
 //Determine the Land Cover Change between 2010 and 2015
 var LULC_Change2 = classified_2015.subtract(classified_2010);
-Map.addLayer(LULC_Change2.clip(bandarban_boundary), {
-  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2010 and 2015_Bandarban', 0);
+Map.addLayer(LULC_Change2.clip(sundarban_boundary), {
+  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2010 and 2015_Sundarban', 0);
 
 //Determine the Land Cover Change between 2010 and 2020
 var LULC_Change3 = classified_2020.subtract(classified_2010);
-Map.addLayer(LULC_Change3.clip(bandarban_boundary), {
-  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2010 and 2020_Bandarban', 0);
+Map.addLayer(LULC_Change3.clip(sundarban_boundary), {
+  min:0, max:2, palette: ['green', 'red', 'yellow']}, 'LULC Change Between 2010 and 2020_Sandarban', 0);
 
 //------------------------------------------------------------------------------
  
 
 
 Export.image.toDrive({
-  image: LULC_Change1.clip(bandarban_boundary).toDouble(),
-  description: 'LULC_Change_Between_2015_and_2020_Bandarban',
+  image: LULC_Change1.clip(sundarban_boundary).toDouble(),
+  description: 'LULC_Change_Between_2015_and_2020_Sundarban',
   scale: 30,
-  region: bandarban_boundary,
+  region: sundarban_boundary,
   fileFormat: 'GeoTIFF',
   maxPixels: 1e9
 });
@@ -343,61 +343,61 @@ Export.image.toDrive({
 
 //thumbnails--------------------------------------------------------------
 
-//LULC Change Between 2020 and 2015_Bandarban
-var thumbnail1 = LULC_Change1.clip(bandarban_boundary).getThumbURL({
+//LULC Change Between 2020 and 2015_Sundarban
+var thumbnail1 = LULC_Change1.clip(sundarban_boundary).getThumbURL({
   'min': 0,
   'max': 2,
   'palette':  ['green', 'red', 'yellow'],
   'dimensions': 500,
-  'region': bandarban_boundary,
+  'region': sundarban_boundary,
 });
-print('LULC Change Between 2020 and 2015_Bandarban:', thumbnail1);
+print('LULC Change Between 2020 and 2015_Sundarban:', thumbnail1);
 
-//LULC Change Between 2010 and 2015_Bandarban
-var thumbnail2 = LULC_Change2.clip(bandarban_boundary).getThumbURL({
+//LULC Change Between 2010 and 2015_Sundarban
+var thumbnail2 = LULC_Change2.clip(sundarban_boundary).getThumbURL({
   'min': 0,
   'max': 2,
   'palette':  ['green', 'red', 'yellow'],
   'dimensions': 500,
-  'region': bandarban_boundary,
+  'region': sundarban_boundary,
 });
-print('LULC Change Between 2010 and 2015_Bandarban:', thumbnail2);
+print('LULC Change Between 2010 and 2015_Sundarban:', thumbnail2);
 
-//LULC Change Between 2010 and 2020_Bandarban
-var thumbnail3 = LULC_Change3.clip(bandarban_boundary).getThumbURL({
+//LULC Change Between 2010 and 2020_Sundarban
+var thumbnail3 = LULC_Change3.clip(sundarban_boundary).getThumbURL({
   'min': 0,
   'max': 2,
   'palette':  ['green', 'red', 'yellow'],
   'dimensions': 500,
-  'region': bandarban_boundary,
+  'region': sundarban_boundary,
 });
-print('LULC Change Between 2010 and 2020_Bandarban:', thumbnail3);
+print('LULC Change Between 2010 and 2020_Sundarban:', thumbnail3);
 
 
-var thumbnail4 = classified_2020.clip(bandarban_boundary).getThumbURL({
+var thumbnail4 = classified_2020.clip(sundarban_boundary).getThumbURL({
   'min': 0,
   'max': 2,
   'palette':  palette,
   'dimensions': 500,
-  'region': bandarban_boundary,
+  'region': sundarban_boundary,
 });
 print('classified_2020', thumbnail4);
 
-var thumbnail4 = classified_2015.clip(bandarban_boundary).getThumbURL({
+var thumbnail4 = classified_2015.clip(sundarban_boundary).getThumbURL({
   'min': 0,
   'max': 2,
   'palette':  palette,
   'dimensions': 500,
-  'region': bandarban_boundary,
+  'region': sundarban_boundary,
 });
 print('classified_2015', thumbnail4);
 
-var thumbnail4 = classified_2010.clip(bandarban_boundary).getThumbURL({
+var thumbnail4 = classified_2010.clip(sundarban_boundary).getThumbURL({
   'min': 0,
   'max': 2,
   'palette': palette,
   'dimensions': 500,
-  'region': bandarban_boundary,
+  'region': sundarban_boundary,
 });
 print('classified_2010', thumbnail4);
 
@@ -408,7 +408,7 @@ var bu_area = bui.multiply(ee.Image.pixelArea()).divide(1000*1000);
 
 var stat = bu_area.reduceRegion({
   reducer: ee.Reducer.sum(),
-  geometry: bandarban_boundary,
+  geometry: sundarban_boundary,
   scale: 30,
   maxPixels: 1e9
 });
@@ -422,7 +422,7 @@ var bu_area1 = bui1.multiply(ee.Image.pixelArea()).divide(1000*1000);
 
 var stat1 = bu_area1.reduceRegion({
   reducer: ee.Reducer.sum(),
-  geometry: bandarban_boundary,
+  geometry: sundarban_boundary,
   scale: 30,
   maxPixels: 1e9
 });
